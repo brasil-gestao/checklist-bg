@@ -58,7 +58,7 @@ textarea{min-height:90px;resize:vertical}
 .info strong{color:var(--fg);font-variant-numeric:tabular-nums}
 button{font:inherit;cursor:pointer}
 .btn{border:0;border-radius:12px;padding:14px 18px;font-weight:600;font-size:18px;min-height:54px}
-.btn-pri{background:var(--marca-verde);color:#10220F;width:100%}
+.btn-pri{background:#15803D;color:#FFFFFF;width:100%;box-shadow:0 2px 0 rgba(0,0,0,.18)}
 .btn-pri:disabled{opacity:.45;cursor:not-allowed}
 .btn-sec{background:transparent;color:var(--fg);border:1.5px solid var(--linha)}
 .lista-check{display:flex;flex-direction:column;gap:10px}
@@ -112,6 +112,12 @@ button{font:inherit;cursor:pointer}
 .moldura-base{position:fixed;left:0;right:0;bottom:0;height:calc(8px + env(safe-area-inset-bottom,0px));background:var(--marca-verde);z-index:6;pointer-events:none}
 main{padding-left:max(20px,calc(env(safe-area-inset-left,0px) + 14px));padding-right:max(20px,calc(env(safe-area-inset-right,0px) + 14px))}
 .barra-acao{bottom:calc(8px + env(safe-area-inset-bottom,0px));padding-bottom:10px;padding-left:max(20px,calc(env(safe-area-inset-left,0px) + 14px));padding-right:max(20px,calc(env(safe-area-inset-right,0px) + 14px))}
+/* Aberto no navegador (antes de instalar): sem a base verde, para o Safari/Chrome não pintar a barra dele de verde */
+@media (display-mode: browser){
+  .moldura-base{display:none}
+  .moldura{background:var(--marca)}
+  .barra-acao{bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+}
 @media (prefers-reduced-motion:no-preference){.item,.cartao-check{transition:border-color .15s}}
 
 .sit.tres{grid-template-columns:1fr 1fr 1fr}
