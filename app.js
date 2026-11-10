@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.7.0";
+const VERSAO_APP = "0.7.1";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -51,17 +51,18 @@ async function postAtivacao(dados) {
   try { const r = await fetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(dados) });
     return await r.json(); } catch (e) { return { ok: false, erro: "rede" }; }
 }
-const TERMO_CORP = "CORPORATIVO-1.0", TERMO_VOL = "VOLUNTARIO-1.0";
+const TERMO_CORP = "CORPORATIVO-1.0", TERMO_VOL = "VOLUNTARIO-1.1";
 function textoTermo(vol, nome, mat, tel) {
   if (!vol) return ["Declaro que este aparelho é o celular corporativo da base, de propriedade da Brasil Gestão, e que estou ativando o aplicativo Checklist BG para uso exclusivo no trabalho.",
     "Nome: " + nome + " · Matrícula: " + mat + " · Celular informado: " + tel];
   return ["TERMO DE INSTALAÇÃO VOLUNTÁRIA EM CELULAR PARTICULAR",
     "Eu, " + nome + ", matrícula " + mat + ", declaro, para os devidos fins, que:",
-    "1. O número que informei (" + tel + ") não é o do celular corporativo da base. Estou instalando o aplicativo Checklist BG em celular de minha propriedade por minha livre e espontânea vontade, sem pedido ou exigência da Brasil Gestão.",
-    "2. Tenho ciência de que a Brasil Gestão disponibiliza o celular corporativo da base para fazer os checklists e de que posso usá-lo a qualquer momento.",
-    "3. Tenho ciência de que o aplicativo funciona sem internet e de que o envio pode ser feito pela rede Wi-Fi do local de trabalho, sem necessidade de usar o meu pacote de dados. Se eu usar meus dados móveis, será por escolha própria.",
-    "4. A instalação é opcional. Não fui obrigado a instalar e posso desinstalar o aplicativo e pedir ao supervisor o bloqueio deste aparelho a qualquer momento.",
-    "5. Estou ciente de que o número informado, a minha matrícula, a data e a hora desta ativação ficam registrados como prova desta declaração, e de que informar um número falso é uma declaração falsa.",
+    "1. O número que informei (" + tel + ") não é o do celular corporativo da base. Estou instalando o aplicativo Checklist BG em celular de minha propriedade, por minha livre e espontânea vontade, sem pedido, ordem ou exigência da Brasil Gestão.",
+    "2. A instalação no meu celular tem como finalidade teste, treinamento, familiarização com o aplicativo e outros, por iniciativa minha.",
+    "3. Tenho ciência de que a Brasil Gestão disponibiliza o celular corporativo da base para fazer os checklists e de que posso usá-lo a qualquer momento, sem nenhum prejuízo por não usar o meu celular.",
+    "4. Tenho ciência de que o aplicativo funciona sem internet e de que o envio pode ser feito pela rede Wi-Fi do local de trabalho, sem necessidade de usar o meu pacote de dados. Se eu usar meus dados móveis, será por escolha própria.",
+    "5. A instalação é opcional. Não fui obrigado a instalar e posso desinstalar o aplicativo e pedir ao supervisor o bloqueio deste aparelho a qualquer momento.",
+    "6. Estou ciente de que o número informado, a minha matrícula, a data e a hora desta ativação ficam registrados como prova desta declaração, e de que informar um número falso é uma declaração falsa.",
     "Declaro que li todo este termo e concordo com ele."];
 }
 async function baixarConfig(chave) {
