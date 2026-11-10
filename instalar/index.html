@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Instalar o Checklist BG</title>
+<meta name="theme-color" content="#1F273F">
+<link rel="icon" href="../icone-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{--navy:#1F273F;--verde:#3DD84B;--verde-esc:#15803D;--amarelo:#FCE61A;--bg:#F3F5F9;--card:#fff;--fg:#1A2133;--muted:#5B6478;--linha:#D9DEE8;
+  --corpo:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--titulo:"Barlow Condensed","Arial Narrow",system-ui,sans-serif}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--corpo);font-size:17px;line-height:1.5}
+header{background:var(--navy);color:#fff;padding:14px max(16px,env(safe-area-inset-left,0px)) 12px;padding-top:calc(14px + env(safe-area-inset-top,0px))}
+header .lin{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header img{height:34px;width:auto}
+header .ver{font-size:13px;color:#C9D1E3;text-align:right}
+.faixa{height:5px;background:linear-gradient(90deg,var(--verde),var(--amarelo))}
+.moldura{position:fixed;top:0;bottom:0;width:6px;pointer-events:none;background:linear-gradient(to bottom,var(--navy) 0%,var(--navy) 40%,#1E7A4A 72%,var(--verde) 100%);z-index:5}
+.moldura.esq{left:0}.moldura.dir{right:0}
+main{max-width:720px;margin:0 auto;padding:20px max(20px,env(safe-area-inset-right,0px)) 48px max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:18px}
+h1,h2{font-family:var(--titulo);margin:0;letter-spacing:.01em;text-wrap:balance;color:var(--navy)}
+h1{font-size:30px;line-height:1.1}
+h2{font-size:23px}
+.sub{color:var(--muted);margin:4px 0 0;font-size:16px}
+.alerta{background:#FFF8C4;border-left:6px solid var(--amarelo);border-radius:0 10px 10px 0;padding:12px 14px;font-size:16px}
+.cartao{background:var(--card);border:1px solid var(--linha);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.botoes{display:grid;gap:10px}
+.btn{display:block;text-align:center;text-decoration:none;font-weight:700;font-size:17px;border-radius:12px;padding:14px 16px}
+.btn-pri{background:var(--verde-esc);color:#fff}
+.btn-sec{background:var(--navy);color:#fff}
+ol.passos{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:p var(--ini,0)}
+ol.passos li{counter-increment:p;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}
+ol.passos li::before{content:counter(p);width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+.abas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.aba{border:2px solid var(--navy);background:#fff;color:var(--navy);font:inherit;font-weight:700;border-radius:10px;padding:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;font-size:15px}
+.aba[aria-selected="true"]{background:var(--navy);color:#fff}
+.tag{display:inline-block;background:var(--navy);color:#fff;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;border-radius:6px;vertical-align:3px;margin-right:6px}
+.nota{font-size:15px;color:var(--muted);border-top:1px solid var(--linha);padding-top:10px}
+ul.cuidados{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.cuidados li{display:grid;grid-template-columns:26px 1fr;gap:8px}
+.ok{color:#1a7f2a;font-weight:800}.nao{color:#c62828;font-weight:800}
+footer{max-width:720px;margin:0 auto;padding:0 20px 32px;color:var(--muted);font-size:14px;text-align:center}
+.base{position:fixed;left:0;right:0;bottom:0;height:calc(6px + env(safe-area-inset-bottom,0px));background:var(--verde);z-index:5}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="moldura esq" aria-hidden="true"></div><div class="moldura dir" aria-hidden="true"></div><div class="base" aria-hidden="true"></div>
+<header><div class="lin"><img src="../logo.png" alt="Brasil Gestão"><div class="ver">Guia de instalação<br><b>versão 1.2 · 09/11/2026</b></div></div></header>
+<div class="faixa"></div>
+<main>
+  <div>
+    <h1>Instalação do Checklist BG no celular corporativo da base</h1>
+    <p class="sub">Aplicativo de checklists de equipamentos da Brasil Gestão.</p>
+  </div>
+
+  <div class="alerta"><b>Somente no celular corporativo da Brasil Gestão.</b> O aplicativo é instalado e usado apenas no celular da base, de propriedade da empresa. Não instale o Checklist BG em celular pessoal.</div>
+
+  <div class="botoes">
+    <a class="btn btn-pri" href="../">Abrir o aplicativo</a>
+    <a class="btn btn-sec" href="guia.pdf" download>Baixar o guia em PDF</a>
+  </div>
+
+  <section class="cartao">
+    <h2>Antes de começar</h2>
+    <ul class="cuidados">
+      <li><span class="ok">✓</span><span>Celular corporativo da base, carregado e <b>com internet</b>.</span></li>
+      <li><span class="ok">✓</span><span><b>Código de ativação</b> fornecido pelo supervisor: 6 letras e números, <b>vale 2 dias</b> e serve para <b>um celular só</b>.</span></li>
+      <li><span class="ok">✓</span><span>iPhone: navegador <b>Safari</b>. Android: <b>Google Chrome</b>.</span></li>
+    </ul>
+  </section>
+
+  <section class="cartao">
+    <h2>Instalar</h2>
+    <p style="margin:0">Escolha o tipo do celular corporativo:</p>
+    <div class="abas" role="tablist">
+      <button class="aba" role="tab" id="t-android" aria-selected="true" aria-controls="p-android">Android</button>
+      <button class="aba" role="tab" id="t-iphone" aria-selected="false" aria-controls="p-iphone">iPhone</button>
+    </div>
+
+    <div id="p-android" role="tabpanel">
+      <ol class="passos">
+        <li><div>Toque em <b>Abrir o aplicativo</b> (botão verde, lá em cima). Se o celular perguntar, abra no <b>Google Chrome</b>.</div></li>
+        <li><div>Espere carregar a tela do Checklist BG, com a logo da Brasil Gestão.</div></li>
+        <li><div>Se aparecer uma faixa embaixo com <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>, toque nela.</div></li>
+        <li><div>Se não aparecer, toque nos <b>três pontinhos ⋮</b> (canto de cima, à direita) e escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</div></li>
+        <li><div>Toque em <b>Instalar</b> (ou <b>Adicionar</b>) para confirmar.</div></li>
+        <li><div>Feche o Chrome e abra o <b>Checklist BG</b> pelo ícone.</div></li>
+      </ol>
+      <p class="nota">Se o link abrir dentro do WhatsApp, toque nos três pontinhos e escolha "Abrir no Chrome" antes de instalar.</p>
+    </div>
+
+    <div id="p-iphone" role="tabpanel" hidden>
+      <ol class="passos">
+        <li><div>Toque em <b>Abrir o aplicativo</b> (botão verde, lá em cima). Ele precisa abrir no <b>Safari</b>.</div></li>
+        <li><div>No Safari, a tela mostra <b>"Instale antes de ativar"</b>. É normal: a ativação é feita depois, pelo ícone.</div></li>
+        <li><div>Toque em <b>Compartilhar</b> (quadrado com seta para cima), na barra do Safari, embaixo e no meio.</div></li>
+        <li><div>Na janela que abrir, <b>role essa janela</b> e toque em <b>Adicionar à Tela de Início</b>. Se não aparecer, toque antes em <b>Ver mais</b> ou <b>…</b></div></li>
+        <li><div>Confira o nome <b>Checklist BG</b> e toque em <b>Adicionar</b>.</div></li>
+        <li><div><b>Feche o Safari</b> e abra o <b>Checklist BG</b> pelo ícone.</div></li>
+      </ol>
+      <div class="alerta" style="margin-top:12px"><b>Importante no iPhone:</b> o Safari e o aplicativo guardam os dados separados. Ative e use <b>só pelo ícone</b>. O que for feito no Safari não aparece no aplicativo.</div>
+      <p class="nota">Se o link abrir dentro do WhatsApp, toque nos três pontinhos e escolha "Abrir no Safari" antes de instalar.</p>
+    </div>
+  </section>
+
+  <section class="cartao">
+    <h2>Ativar (uma vez por celular)</h2>
+    <ol class="passos">
+      <li><div>Abra o Checklist BG pelo ícone, <b>com internet</b>.</div></li>
+      <li><div>Na tela <b>Ativar o celular da base</b>, digite o <b>código de ativação</b> do supervisor e toque em <b>Ativar este celular</b>.</div></li>
+      <li><div>Na primeira foto, o celular pergunta se o aplicativo pode usar a câmera: toque em <b>Permitir</b>.</div></li>
+    </ol>
+    <p class="nota">"Este código já venceu" ou "Código não aceito": peça um código novo ao supervisor.</p>
+  </section>
+
+  <section class="cartao">
+    <h2>Sua senha pessoal</h2>
+    <ol class="passos">
+      <li><div>O supervisor entrega a cada bombeiro uma <b>senha provisória</b> de 6 números, em particular.</div></li>
+      <li><div>No <b>primeiro checklist</b>, use a provisória. Depois de salvar, o aplicativo pede para você <b>criar a sua senha</b> (com internet). Sequências e números repetidos não são aceitos.</div></li>
+      <li><div>A partir daí, use <b>só a sua senha</b>. Ela é a sua <b>assinatura</b> nos checklists: não passe para ninguém.</div></li>
+      <li><div><b>Esqueceu?</b> Fale com o supervisor: ele libera uma provisória nova. Com a senha errada, o aplicativo não deixa salvar.</div></li>
+    </ol>
+  </section>
+
+  <section class="cartao">
+    <h2>Cuidados no dia a dia</h2>
+    <ul class="cuidados">
+      <li><span class="ok">✓</span><span><b>Use sempre pelo ícone.</b> Nunca por aba do navegador, aba anônima ou link aberto no WhatsApp: podem apagar a ativação e os checklists.</span></li>
+      <li><span class="ok">✓</span><span><b>Sem sinal, pode continuar.</b> O checklist fica salvo e é enviado sozinho quando o sinal volta. Abra o app quando o sinal voltar.</span></li>
+      <li><span class="nao">✕</span><span><b>Não apague o aplicativo</b> nem limpe os dados do navegador enquanto houver checklist esperando envio.</span></li>
+      <li><span class="nao">✕</span><span><b>Não instale em outro celular.</b> Troca, perda ou defeito: avise o supervisor.</span></li>
+      <li><span class="ok">✓</span><span><b>Dúvida ou problema:</b> fale com o supervisor da base.</span></li>
+    </ul>
+  </section>
+</main>
+<footer>Brasil Gestão · Checklist BG · Guia de instalação versão 1.2 · 09/11/2026 · app 0.6.2</footer>
+<script>
+(function(){
+  var tabs=[["t-android","p-android"],["t-iphone","p-iphone"]];
+  function mostrar(id){tabs.forEach(function(t){var on=t[0]===id;document.getElementById(t[0]).setAttribute("aria-selected",on);document.getElementById(t[1]).hidden=!on;});}
+  tabs.forEach(function(t){document.getElementById(t[0]).addEventListener("click",function(){mostrar(t[0]);});});
+  var ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(ios)mostrar("t-iphone");
+})();
+</script>
+</body>
+</html>
