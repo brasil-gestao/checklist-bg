@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.6.1";
+const VERSAO_APP = "0.6.2";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -112,8 +112,20 @@ function camera(fotoAtual, aoBater, rotuloSimular) {
 function barra(...b) { $("#barraDentro").replaceChildren(...b); $("#barra").hidden = b.length === 0; }
 function tela(...filhos) { pararCamera(); $("#tela").replaceChildren(...filhos); window.scrollTo(0, 0); }
 
+/* No iPhone, o Safari e o app instalado guardam dados separados: só deixa ativar pelo ícone */
+const ehIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const estaInstalado = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
 function telaAtivar() {
   barra();
+  if (!MODO_DEMO && ehIOS() && !estaInstalado()) {
+    return tela(el("div", {}, el("h1", {}, "Instale antes de ativar"),
+        el("p", { class: "sub" }, "No iPhone, o Checklist BG só pode ser ativado pelo ícone na tela inicial. O que for feito aqui no Safari não aparece no aplicativo.")),
+      el("div", { class: "bloco" }, el("ol", { style: "margin:0;padding-left:20px;display:grid;gap:8px" },
+        el("li", {}, "Toque em ", el("strong", {}, "Compartilhar"), " (quadrado com seta para cima), na barra do Safari."),
+        el("li", {}, "Escolha ", el("strong", {}, "Adicionar à Tela de Início"), " e toque em ", el("strong", {}, "Adicionar"), "."),
+        el("li", {}, el("strong", {}, "Feche o Safari"), " e abra o Checklist BG pelo ícone."),
+        el("li", {}, "No aplicativo, digite o código de ativação."))));
+  }
   const cod = el("input", { type: "text", id: "codigo", autocomplete: "off", placeholder: "Código de ativação" });
   const erro = el("div", { class: "erro", hidden: true });
   const ok = el("button", { class: "btn btn-pri", onclick: async () => {
