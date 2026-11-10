@@ -1,6 +1,6 @@
 // Service worker do Checklist BG: guarda as telas no celular para abrir sem internet.
 // Regra: atualizar o programa NUNCA apaga a fila de envio (ela fica no IndexedDB, fora deste cache).
-const VERSAO = "checklist-bg-0.5.0";
+const VERSAO = "checklist-bg-0.6.0";
 const ARQUIVOS = ["./", "index.html", "app.js", "manifest.json", "logo.png", "icone-192.png", "icone-512.png"];
 
 self.addEventListener("install", e => {
