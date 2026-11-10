@@ -87,6 +87,10 @@ button{font:inherit;cursor:pointer}
 .sucesso{background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:14px;font-weight:600}
 .decl{display:flex;gap:10px;align-items:flex-start;font-size:16px}
 .decl input{width:24px;height:24px;margin-top:2px;flex:none}
+.termo{background:var(--card);border:1px solid var(--linha);border-radius:12px;padding:14px 16px;font-size:15px;line-height:1.5}
+.termo p{margin:0 0 10px}
+.termo.longo{max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border:2px solid var(--marca)}
+.termo-tit{font-weight:700}
 .barra-acao{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--linha);z-index:4;
   padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
