@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.5.0";
+const VERSAO_APP = "0.6.0";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -151,21 +151,39 @@ function telaInicio() {
     erro, seguir, el("button", { class: "btn btn-sec", onclick: telaFila }, "Ver fila de envio"));
 }
 
+/* Plantão = contrato + data do início do turno + turno + checklist (+ bombeiro, quando é 1 por bombeiro).
+   O turno da noite (19h–7h) continua sendo o mesmo plantão depois da meia-noite. */
+function dataPlantao(turnoId, iso) {
+  const t = (CFG.turnos || []).find(x => x.id === turnoId) || {};
+  const [h, m] = String(t.inicio || "00:00").split(":").map(Number);
+  const d = new Date(iso || Date.now());
+  if (d.getHours() * 60 + d.getMinutes() < h * 60 + (m || 0) - 120) d.setDate(d.getDate() - 1);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function chavePlantao(c, matricula, turnoId, iso) { return [S.contrato, dataPlantao(turnoId, iso), turnoId, c.id].concat(c.por_bombeiro ? [matricula] : []).join("|"); }
+
 async function telaEscolha() {
   barra();
   const t = CFG.turnos.find(x => x.id === S.turno);
   const permitidos = t.checklists === "todos" ? null : t.checklists.split(",").map(s => s.trim());
   const lista = CFG.checklists.filter(c => c.contrato === S.contrato && (!permitidos || permitidos.includes(c.id)));
-  const hoje = new Date().toDateString();
-  const feitos = (await filaListar()).filter(r => new Date(r.criado_em).toDateString() === hoje && r.turno === S.turno);
+  const fila = await filaListar();
+  const aviso = el("div", { class: "aviso", hidden: true });
   tela(el("button", { class: "voltar", onclick: telaInicio }, "‹ Voltar"),
     el("div", {}, el("h1", {}, "Qual checklist?"), el("p", { class: "sub" }, S.nome + " · " + t.nome + " · prazo até " + t.prazo.replace(":00", "h"))),
+    aviso,
     el("div", { class: "lista-check" }, lista.map(c => {
       const n = CFG.itens.filter(i => i.checklist === c.id).length;
-      const ja = feitos.filter(r => r.checklist_id === c.id && (!c.por_bombeiro || r.matricula === S.matricula)).length;
-      return el("button", { class: "cartao-check" + (ja ? " feito" : ""), onclick: () => abrirChecklist(c) },
-        el("div", {}, el("div", { class: "nome" }, c.nome), el("div", { class: "det" }, n + " itens · " + c.quantos + (ja ? " · já feito neste celular hoje" : ""))),
-        el("span", { class: "seta", "aria-hidden": "true" }, ja ? "✓" : "›"));
+      const chave = chavePlantao(c, S.matricula, S.turno);
+      const feito = fila.find(r => r.checklist_id === c.id && (r.plantao || chavePlantao(c, r.matricula, r.turno, r.criado_em)) === chave);
+      const quem = feito ? (feito.nome || String(feito.resumo || "").split(" · ")[1] || "") : "";
+      const abrir = feito ? () => {
+        aviso.replaceChildren(el("strong", {}, c.nome + ": já realizado neste plantão"), el("br"),
+          (quem ? "Feito por " + quem + " às " + horaLocal(feito.criado_em) + ". " : "") + "Não é preciso fazer de novo. Se o primeiro teve erro, fale com o supervisor para liberar uma nova inspeção.");
+        aviso.hidden = false; aviso.scrollIntoView({ behavior: "smooth", block: "center" }); } : () => abrirChecklist(c);
+      return el("button", { class: "cartao-check" + (feito ? " feito" : ""), "aria-disabled": feito ? "true" : null, onclick: abrir },
+        el("div", {}, el("div", { class: "nome" }, c.nome), el("div", { class: "det" }, feito ? "Já realizado neste plantão" + (quem ? " · " + quem : "") : n + " itens · " + c.quantos)),
+        el("span", { class: "seta", "aria-hidden": "true" }, feito ? "✓" : "›"));
     })));
 }
 
@@ -280,13 +298,14 @@ function telaFinal() {
     const fim = agoraISO(), itens = CFG.itens.filter(i => i.checklist === c.id), campos = (CFG.campos || []).filter(x => x.checklist === c.id);
     const payload = { id: uid(), versao_app: VERSAO_APP, versao_lista: CFG.versao_lista, contrato: S.contrato, checklist_id: c.id, checklist: c.nome,
       matricula: S.matricula, nome: S.nome, turno: S.turno, inicio_sessao: S.inicioSessao, inicio_checklist: S.inicio, fim,
+      plantao: chavePlantao(c, S.matricula, S.turno, S.inicio),
       senha_hash: hPin,
       cabecalho: campos.map(cp => ({ campo_id: cp.id, rotulo: cp.rotulo, valor: S.cab[cp.id] || "" })),
       tem_nao_conforme: itens.some(i => S.resp[i.id].sit === "N") || itens.some(i => i.tipo === "lista" && opcoes(i.texto_se).includes(S.resp[i.id].valor)),
       respostas: itens.map(i => { const r = S.resp[i.id];
         return { item_id: i.id, item: i.nome, bloco: i.bloco, tipo: i.tipo, quantidade: r.qtd ?? "", situacao: r.sit ? SIT[r.sit] : (r.valor || ""), descricao: (r.desc || "").trim(), foto: r.foto || "", foto_em: r.fotoEm || "" }; }),
       foto_final: { tirada_em: S.fotoEm, origem: "camera_do_app", imagem: S.foto } };
-    await filaSalvar({ id: payload.id, criado_em: fim, situacao: "aguardando", checklist_id: c.id, matricula: S.matricula, turno: S.turno, resumo: c.nome + " · " + S.nome, payload });
+    await filaSalvar({ id: payload.id, criado_em: fim, situacao: "aguardando", checklist_id: c.id, matricula: S.matricula, nome: S.nome, turno: S.turno, plantao: payload.plantao, resumo: c.nome + " · " + S.nome, payload });
     await atualizarChip(); enviarFila();
     if (!MODO_DEMO && fx.prov) telaCriarSenha(payload, hPin); else telaEnviado(payload);
   }
