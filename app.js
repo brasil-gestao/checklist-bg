@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.8.0";
+const VERSAO_APP = "0.8.1";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -159,7 +159,7 @@ function telaAtivar() {
     if (j && j.ok) return telaTermo(dados, j.nome, !j.celular_da_base);
     erro.textContent = msgErro[j && j.erro] || "Código não aceito. Confira com o supervisor e tente de novo.";
     erro.hidden = false; ok.disabled = false; ok.textContent = "Continuar"; } }, "Continuar");
-  tela(el("div", {}, el("h1", {}, "Ativar o celular da base"), el("p", { class: "sub" }, "Faça uma vez só, com internet. Peça o código ao supervisor por e-mail; ele vale 2 dias.")),
+  tela(el("div", {}, el("h1", {}, "Ativar o celular"), el("p", { class: "sub" }, "Faça uma vez só, com internet. Peça o código ao supervisor por e-mail; ele vale 2 dias.")),
     el("div", { class: "bloco" }, el("label", { class: "rot", for: "codigo" }, "Código de ativação"), cod,
       el("label", { class: "rot", for: "mat" }, "Sua matrícula"), mat,
       el("label", { class: "rot", for: "tel" }, "Número deste celular (com DDD)"), tel), erro, ok);
@@ -234,7 +234,22 @@ function telaInicio() {
       el("div", {}, el("label", { class: "rot", for: "contrato" }, "Contrato"), selContrato),
       el("div", {}, el("label", { class: "rot", for: "nome" }, "Seu nome"), selNome, el("p", { class: "info", style: "margin:6px 0 0" }, "Matrícula: ", mat)),
       el("div", {}, el("label", { class: "rot", for: "turno" }, "Turno"), selTurno)),
-    erro, seguir, el("button", { class: "btn btn-sec", onclick: telaFila }, "Ver fila de envio"));
+    erro, seguir, el("button", { class: "btn btn-sec", onclick: telaFila }, "Ver fila de envio"),
+    el("button", { class: "voltar", style: "align-self:center", onclick: telaEsqueci }, "Esqueci minha senha"));
+}
+
+/* Esqueceu a senha: pede código novo por e-mail e ativa de novo (cria senha nova). Sem senha provisória. */
+async function telaEsqueci() {
+  barra();
+  const n = (await filaListar()).filter(r => r.situacao !== "enviado").length;
+  tela(el("button", { class: "voltar", onclick: telaInicio }, "‹ Voltar"),
+    el("div", {}, el("h1", {}, "Esqueci minha senha"), el("p", { class: "sub" }, "Para criar uma senha nova, é preciso ativar o celular de novo com um código novo.")),
+    n ? el("div", { class: "erro" }, "Você tem " + n + " checklist(s) esperando envio. Conecte à internet e espere enviar ANTES de ativar de novo.") : null,
+    el("div", { class: "bloco" }, el("ol", { style: "margin:0;padding-left:20px;display:grid;gap:8px" },
+      el("li", {}, "Avise o supervisor."),
+      el("li", {}, "Mande um e-mail para ", el("b", { style: "overflow-wrap:anywhere" }, "gestaodequalidade.brasilgestao@gmail.com"), " pedindo um código de ativação novo, com seu nome completo e matrícula."),
+      el("li", {}, "Quando receber o código, toque em \"Já tenho o código novo\", ative de novo e crie a sua senha nova."))),
+    el("button", { class: "btn btn-pri", onclick: telaAtivar }, "Já tenho o código novo"));
 }
 
 /* Plantão = contrato + data do início do turno + turno + checklist (+ bombeiro, quando é 1 por bombeiro).
