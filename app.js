@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.7.2";
+const VERSAO_APP = "0.8.0";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -123,7 +123,7 @@ function camera(fotoAtual, aoBater, rotuloSimular) {
 
 /* ===== Telas ===== */
 function barra(...b) { $("#barraDentro").replaceChildren(...b); $("#barra").hidden = b.length === 0; }
-function tela(...filhos) { pararCamera(); $("#tela").replaceChildren(...filhos); window.scrollTo(0, 0); }
+function tela(...filhos) { pararCamera(); $("#tela").replaceChildren(...filhos.filter(f => f != null)); window.scrollTo(0, 0); }
 
 /* No iPhone, o Safari e o app instalado guardam dados separados: só deixa ativar pelo ícone */
 const ehIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -177,15 +177,38 @@ function telaTermo(dados, nome, vol) {
   const erro = el("div", { class: "erro", hidden: true });
   const ok = el("button", { class: "btn btn-pri", onclick: async () => {
     if (!aceite.checked) { erro.textContent = vol ? "Leia o termo até o fim e marque \"Li e concordo\"." : "Marque \"Li e concordo\"."; erro.hidden = false; return; }
-    ok.disabled = true; ok.textContent = "Ativando…";
-    const j = await postAtivacao(Object.assign({ acao: "ativar", termo: vol ? TERMO_VOL : TERMO_CORP, aceite: true }, dados));
-    if (j && j.ok && j.token && await baixarConfig(j.token)) { textoFaixa(); return telaInicio(); }
-    erro.textContent = j && j.erro === "expirado" ? "Este código já venceu. Peça um código novo ao supervisor." : "Não foi possível ativar. Confira com o supervisor e tente de novo.";
-    erro.hidden = false; ok.disabled = false; ok.textContent = "Ativar este celular"; } }, "Ativar este celular");
+    telaSenhaAtivacao(dados, vol, () => telaTermo(dados, nome, vol)); } }, "Continuar");
   tela(el("button", { class: "voltar", onclick: telaAtivar }, "‹ Voltar"),
     el("div", {}, el("h1", {}, vol ? "Este não é o celular da base" : "Declaração"),
       el("p", { class: "sub" }, vol ? "O número informado não é o do celular corporativo da base. Para continuar, leia e aceite o termo abaixo." : "Confirme que este é o celular corporativo da base.")),
     caixa, dica, el("label", { class: "decl", for: "aceite" }, aceite, el("span", {}, "Li e concordo")), erro, ok);
+}
+
+/* Última etapa da ativação: o funcionário cria a senha pessoal (assinatura dos checklists). Sem senha provisória. */
+function telaSenhaAtivacao(dados, vol, voltar) {
+  barra();
+  const campo = ph => el("input", { type: "password", inputmode: "numeric", autocomplete: "off", maxlength: "6", placeholder: ph, oninput: e => { e.target.value = e.target.value.replace(/\D/g, ""); } });
+  const a = campo("Senha (6 números)"), b = campo("Repita a senha");
+  const erro = el("div", { class: "erro", hidden: true });
+  const fraca = s => /^(\d)\1{5}$/.test(s) || "01234567890".includes(s) || "09876543210".includes(s);
+  const ok = el("button", { class: "btn btn-pri", onclick: async () => {
+    const f = [];
+    if (a.value.length !== 6) f.push("A senha precisa ter 6 números.");
+    else if (fraca(a.value)) f.push("Senha muito fácil (sequência ou números repetidos). Escolha outra.");
+    if (a.value !== b.value) f.push("As duas senhas não são iguais.");
+    if (f.length) { erro.replaceChildren(el("ul", {}, f.map(t => el("li", {}, t)))); erro.hidden = false; return; }
+    if (!navigator.onLine) { erro.textContent = "Sem internet. Para ativar, o celular precisa estar conectado."; erro.hidden = false; return; }
+    ok.disabled = true; ok.textContent = "Ativando…";
+    const novo = await sha256(dados.matricula + ":" + a.value);
+    const j = await postAtivacao(Object.assign({ acao: "ativar", termo: vol ? TERMO_VOL : TERMO_CORP, aceite: true, novo_hash: novo }, dados));
+    if (j && j.ok && j.token && await baixarConfig(j.token)) { textoFaixa(); return telaInicio(); }
+    erro.textContent = j && j.erro === "expirado" ? "Este código já venceu. Peça um código novo ao supervisor." : "Não foi possível ativar. Confira com o supervisor e tente de novo.";
+    erro.hidden = false; ok.disabled = false; ok.textContent = "Ativar este celular"; } }, "Ativar este celular");
+  tela(el("button", { class: "voltar", onclick: voltar }, "‹ Voltar"),
+    el("div", {}, el("h1", {}, "Crie sua senha"), el("p", { class: "sub" }, "Agora crie a sua senha de 6 números. Ela é a sua assinatura: sem ela, o checklist não é enviado. Escolha um número fácil de lembrar para você, mas não use sequência (123456) nem números repetidos (111111). Não passe a senha para ninguém.")),
+    el("div", { class: "bloco" }, el("label", { class: "rot" }, "Senha"), a, el("label", { class: "rot" }, "Repita a senha"), b),
+    el("p", { class: "info", style: "margin:0" }, "Esqueceu a senha depois? Peça um código de ativação novo por e-mail e ative de novo: você cria outra senha."),
+    erro, ok);
 }
 
 function telaInicio() {
