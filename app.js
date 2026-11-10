@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.6.2";
+const VERSAO_APP = "0.7.0";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -46,11 +46,23 @@ async function carregarConfig() {
   if (salva && salva.cfg) { CFG = salva.cfg; cfgEm = salva.em; }
   if (CHAVE && navigator.onLine) await baixarConfig(CHAVE);
 }
-async function ativar(codigo) {
-  try { const r = await fetch(ENDPOINT + "?acao=ativar&codigo=" + encodeURIComponent(codigo), { cache: "no-store" });
-    const j = await r.json(); if (j && j.ok && j.token) return await baixarConfig(j.token);
-    return j && j.erro === "expirado" ? "expirado" : false;
-  } catch (e) { return false; }
+/* Ativação: código + matrícula + número do celular, depois a declaração (termo) aceita */
+async function postAtivacao(dados) {
+  try { const r = await fetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(dados) });
+    return await r.json(); } catch (e) { return { ok: false, erro: "rede" }; }
+}
+const TERMO_CORP = "CORPORATIVO-1.0", TERMO_VOL = "VOLUNTARIO-1.0";
+function textoTermo(vol, nome, mat, tel) {
+  if (!vol) return ["Declaro que este aparelho é o celular corporativo da base, de propriedade da Brasil Gestão, e que estou ativando o aplicativo Checklist BG para uso exclusivo no trabalho.",
+    "Nome: " + nome + " · Matrícula: " + mat + " · Celular informado: " + tel];
+  return ["TERMO DE INSTALAÇÃO VOLUNTÁRIA EM CELULAR PARTICULAR",
+    "Eu, " + nome + ", matrícula " + mat + ", declaro, para os devidos fins, que:",
+    "1. O número que informei (" + tel + ") não é o do celular corporativo da base. Estou instalando o aplicativo Checklist BG em celular de minha propriedade por minha livre e espontânea vontade, sem pedido ou exigência da Brasil Gestão.",
+    "2. Tenho ciência de que a Brasil Gestão disponibiliza o celular corporativo da base para fazer os checklists e de que posso usá-lo a qualquer momento.",
+    "3. Tenho ciência de que o aplicativo funciona sem internet e de que o envio pode ser feito pela rede Wi-Fi do local de trabalho, sem necessidade de usar o meu pacote de dados. Se eu usar meus dados móveis, será por escolha própria.",
+    "4. A instalação é opcional. Não fui obrigado a instalar e posso desinstalar o aplicativo e pedir ao supervisor o bloqueio deste aparelho a qualquer momento.",
+    "5. Estou ciente de que o número informado, a minha matrícula, a data e a hora desta ativação ficam registrados como prova desta declaração, e de que informar um número falso é uma declaração falsa.",
+    "Declaro que li todo este termo e concordo com ele."];
 }
 async function baixarConfig(chave) {
   try { const r = await fetch(ENDPOINT + "?acao=config&chave=" + encodeURIComponent(chave), { cache: "no-store" });
@@ -126,18 +138,53 @@ function telaAtivar() {
         el("li", {}, el("strong", {}, "Feche o Safari"), " e abra o Checklist BG pelo ícone."),
         el("li", {}, "No aplicativo, digite o código de ativação."))));
   }
+  const soNum = e => { e.target.value = e.target.value.replace(/\D/g, ""); };
   const cod = el("input", { type: "text", id: "codigo", autocomplete: "off", placeholder: "Código de ativação" });
+  const mat = el("input", { type: "text", id: "mat", inputmode: "numeric", maxlength: "6", autocomplete: "off", placeholder: "Sua matrícula (6 números)", oninput: soNum });
+  const tel = el("input", { type: "tel", id: "tel", inputmode: "numeric", maxlength: "13", autocomplete: "off", placeholder: "DDD + número", oninput: soNum });
+  const erro = el("div", { class: "erro", hidden: true });
+  const msgErro = { expirado: "Este código já venceu (vale 2 dias). Peça um código novo ao supervisor.", matricula: "Matrícula não encontrada ou inativa. Confira com o supervisor.",
+    telefone: "Digite o número deste celular com DDD.", rede: "Sem conexão com o servidor. Tente de novo.", termo: "É preciso ler e aceitar a declaração." };
+  const ok = el("button", { class: "btn btn-pri", onclick: async () => {
+    const f = [];
+    if (!cod.value.trim()) f.push("Digite o código de ativação.");
+    if (mat.value.length < 1) f.push("Digite a sua matrícula.");
+    if (tel.value.length < 10) f.push("Digite o número deste celular com DDD.");
+    if (f.length) { erro.replaceChildren(el("ul", {}, f.map(t => el("li", {}, t)))); erro.hidden = false; return; }
+    if (!navigator.onLine) { erro.textContent = "Sem internet. Para ativar, o celular precisa estar conectado."; erro.hidden = false; return; }
+    ok.disabled = true; ok.textContent = "Conferindo…";
+    const dados = { codigo: cod.value.trim().toUpperCase(), matricula: mat.value.padStart(6, "0"), telefone: tel.value };
+    const j = await postAtivacao(Object.assign({ acao: "checar_ativacao" }, dados));
+    if (j && j.ok) return telaTermo(dados, j.nome, !j.celular_da_base);
+    erro.textContent = msgErro[j && j.erro] || "Código não aceito. Confira com o supervisor e tente de novo.";
+    erro.hidden = false; ok.disabled = false; ok.textContent = "Continuar"; } }, "Continuar");
+  tela(el("div", {}, el("h1", {}, "Ativar o celular da base"), el("p", { class: "sub" }, "Faça uma vez só, com internet. Peça o código ao supervisor por e-mail; ele vale 2 dias.")),
+    el("div", { class: "bloco" }, el("label", { class: "rot", for: "codigo" }, "Código de ativação"), cod,
+      el("label", { class: "rot", for: "mat" }, "Sua matrícula"), mat,
+      el("label", { class: "rot", for: "tel" }, "Número deste celular (com DDD)"), tel), erro, ok);
+}
+
+/* Declaração: celular da base = declaração curta; outro número = termo de instalação voluntária, que precisa ser lido até o fim */
+function telaTermo(dados, nome, vol) {
+  barra();
+  const linhas = textoTermo(vol, nome, dados.matricula, dados.telefone);
+  const caixa = el("div", { class: "termo" + (vol ? " longo" : "") }, linhas.map((t, i) => el("p", i === 0 && vol ? { class: "termo-tit" } : {}, t)));
+  const aceite = el("input", { type: "checkbox", id: "aceite", disabled: vol ? true : null });
+  const dica = el("p", { class: "info", style: "margin:0" }, vol ? "Role o texto até o fim para liberar o aceite." : "");
+  const liberar = () => { if (caixa.scrollTop + caixa.clientHeight >= caixa.scrollHeight - 6) { aceite.disabled = false; dica.textContent = ""; } };
+  if (vol) { caixa.addEventListener("scroll", liberar); setTimeout(liberar, 300); }
   const erro = el("div", { class: "erro", hidden: true });
   const ok = el("button", { class: "btn btn-pri", onclick: async () => {
-    if (!cod.value.trim()) { erro.textContent = "Digite o código de ativação."; erro.hidden = false; return; }
-    if (!navigator.onLine) { erro.textContent = "Sem internet. Para ativar, o celular precisa estar conectado."; erro.hidden = false; return; }
+    if (!aceite.checked) { erro.textContent = vol ? "Leia o termo até o fim e marque \"Li e concordo\"." : "Marque \"Li e concordo\"."; erro.hidden = false; return; }
     ok.disabled = true; ok.textContent = "Ativando…";
-    const res = await ativar(cod.value.trim().toUpperCase());
-    if (res === true) { textoFaixa(); telaInicio(); }
-    else { erro.textContent = res === "expirado" ? "Este código já venceu (vale 2 dias). Peça um código novo ao supervisor." : "Código não aceito. Confira com o supervisor e tente de novo.";
-      erro.hidden = false; ok.disabled = false; ok.textContent = "Ativar este celular"; } } }, "Ativar este celular");
-  tela(el("div", {}, el("h1", {}, "Ativar o celular da base"), el("p", { class: "sub" }, "Faça uma vez só, com internet. Peça o código ao supervisor; ele vale 2 dias.")),
-    el("div", { class: "bloco" }, el("label", { class: "rot", for: "codigo" }, "Código de ativação"), cod), erro, ok);
+    const j = await postAtivacao(Object.assign({ acao: "ativar", termo: vol ? TERMO_VOL : TERMO_CORP, aceite: true }, dados));
+    if (j && j.ok && j.token && await baixarConfig(j.token)) { textoFaixa(); return telaInicio(); }
+    erro.textContent = j && j.erro === "expirado" ? "Este código já venceu. Peça um código novo ao supervisor." : "Não foi possível ativar. Confira com o supervisor e tente de novo.";
+    erro.hidden = false; ok.disabled = false; ok.textContent = "Ativar este celular"; } }, "Ativar este celular");
+  tela(el("button", { class: "voltar", onclick: telaAtivar }, "‹ Voltar"),
+    el("div", {}, el("h1", {}, vol ? "Este não é o celular da base" : "Declaração"),
+      el("p", { class: "sub" }, vol ? "O número informado não é o do celular corporativo da base. Para continuar, leia e aceite o termo abaixo." : "Confirme que este é o celular corporativo da base.")),
+    caixa, dica, el("label", { class: "decl", for: "aceite" }, aceite, el("span", {}, "Li e concordo")), erro, ok);
 }
 
 function telaInicio() {
