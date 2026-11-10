@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.4.1";
+const VERSAO_APP = "0.5.0";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -142,7 +142,7 @@ function telaInicio() {
     const f = []; if (!S.matricula) f.push("Escolha o seu nome."); if (!S.turno) f.push("Escolha o turno.");
     if (f.length) { erro.replaceChildren("Antes de continuar:", el("ul", {}, f.map(t => el("li", {}, t)))); erro.hidden = false; return; }
     telaEscolha(); } }, "Continuar");
-  tela(MODO_DEMO ? el("div", { class: "demo" }, "Demonstração: nada é enviado de verdade. A senha de teste é 123456.") : null,
+  tela(MODO_DEMO ? el("div", { class: "demo" }, "Demonstração: nada é enviado de verdade.") : null,
     el("div", {}, el("h1", {}, "Identificação"), el("p", { class: "sub" }, "Escolha o contrato, o seu nome e o turno em que está trabalhando.")),
     el("div", { class: "bloco" },
       el("div", {}, el("label", { class: "rot", for: "contrato" }, "Contrato"), selContrato),
@@ -271,18 +271,24 @@ function telaFinal() {
   function revalidar() { if (!erro.hidden) mostrar(faltas()); }
   async function concluir() {
     const f = faltas(); if (f.length) { mostrar(f); erro.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-    if (MODO_DEMO && pin.value !== "123456") { mostrar(["Senha não confere. Na demonstração, a senha é 123456."]); pin.value = ""; return; }
+    const fx = (CFG.funcionarios || []).find(x => x.matricula === S.matricula) || {};
+    const hPin = await sha256(S.matricula + ":" + pin.value);
+    if (!MODO_DEMO) {
+      if (!fx.h) { mostrar(["Você ainda não tem senha cadastrada. Peça a sua senha provisória ao supervisor."]); return; }
+      if (hPin !== fx.h) { mostrar(["Senha não confere. Digite de novo. Se esqueceu a senha, fale com o supervisor."]); pin.value = ""; return; }
+    }
     const fim = agoraISO(), itens = CFG.itens.filter(i => i.checklist === c.id), campos = (CFG.campos || []).filter(x => x.checklist === c.id);
     const payload = { id: uid(), versao_app: VERSAO_APP, versao_lista: CFG.versao_lista, contrato: S.contrato, checklist_id: c.id, checklist: c.nome,
       matricula: S.matricula, nome: S.nome, turno: S.turno, inicio_sessao: S.inicioSessao, inicio_checklist: S.inicio, fim,
-      senha_hash: await sha256(S.matricula + ":" + pin.value),
+      senha_hash: hPin,
       cabecalho: campos.map(cp => ({ campo_id: cp.id, rotulo: cp.rotulo, valor: S.cab[cp.id] || "" })),
       tem_nao_conforme: itens.some(i => S.resp[i.id].sit === "N") || itens.some(i => i.tipo === "lista" && opcoes(i.texto_se).includes(S.resp[i.id].valor)),
       respostas: itens.map(i => { const r = S.resp[i.id];
         return { item_id: i.id, item: i.nome, bloco: i.bloco, tipo: i.tipo, quantidade: r.qtd ?? "", situacao: r.sit ? SIT[r.sit] : (r.valor || ""), descricao: (r.desc || "").trim(), foto: r.foto || "", foto_em: r.fotoEm || "" }; }),
       foto_final: { tirada_em: S.fotoEm, origem: "camera_do_app", imagem: S.foto } };
     await filaSalvar({ id: payload.id, criado_em: fim, situacao: "aguardando", checklist_id: c.id, matricula: S.matricula, turno: S.turno, resumo: c.nome + " · " + S.nome, payload });
-    await atualizarChip(); telaEnviado(payload); enviarFila();
+    await atualizarChip(); enviarFila();
+    if (!MODO_DEMO && fx.prov) telaCriarSenha(payload, hPin); else telaEnviado(payload);
   }
   tela(el("button", { class: "voltar", onclick: telaItens }, "‹ Voltar aos itens"),
     el("div", {}, el("h1", {}, "Foto e envio"), el("p", { class: "sub" }, c.nome + " · " + S.nome)),
@@ -294,10 +300,40 @@ function telaFinal() {
     erro, el("button", { class: "btn btn-pri", onclick: concluir }, "Salvar e enviar"));
 }
 
-function telaEnviado(p) {
+/* Primeiro uso (ou senha provisória nova): o bombeiro cria a senha pessoal de 6 números */
+function telaCriarSenha(p, hProv) {
+  barra();
+  const campo = ph => el("input", { type: "password", inputmode: "numeric", autocomplete: "off", maxlength: "6", placeholder: ph, oninput: e => { e.target.value = e.target.value.replace(/\D/g, ""); } });
+  const a = campo("Nova senha (6 números)"), b = campo("Repita a nova senha");
+  const erro = el("div", { class: "erro", hidden: true });
+  const fraca = s => /^(\d)\1{5}$/.test(s) || "01234567890".includes(s) || "09876543210".includes(s);
+  const ok = el("button", { class: "btn btn-pri", onclick: async () => {
+    const f = [];
+    if (a.value.length !== 6) f.push("A nova senha precisa ter 6 números.");
+    else if (fraca(a.value)) f.push("Senha muito fácil (sequência ou números repetidos). Escolha outra.");
+    if (a.value !== b.value) f.push("As duas senhas não são iguais.");
+    if (f.length) { erro.replaceChildren(el("ul", {}, f.map(t => el("li", {}, t)))); erro.hidden = false; return; }
+    if (!navigator.onLine) { erro.textContent = "Sem internet agora. Seu checklist já está salvo. Na próxima vez, com internet, o app pede de novo para criar a senha."; erro.hidden = false; return; }
+    ok.disabled = true; ok.textContent = "Gravando…";
+    const novo = await sha256(S.matricula + ":" + a.value);
+    try { const r = await fetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ acao: "criar_senha", chave: CHAVE, matricula: S.matricula, hash_atual: hProv, novo_hash: novo }) });
+      const j = await r.json().catch(() => ({}));
+      if (j.ok) { const fx = CFG.funcionarios.find(x => x.matricula === S.matricula); if (fx) { fx.h = novo; fx.prov = false; } await cfgSalvar("atual", { cfg: CFG, em: cfgEm });
+        return telaEnviado(p, "Senha pessoal criada. A partir de agora, use só a sua senha nova."); }
+      erro.textContent = "Não foi possível gravar a senha. Tente de novo ou fale com o supervisor.";
+    } catch (e) { erro.textContent = "Sem conexão com o servidor. Tente de novo."; }
+    erro.hidden = false; ok.disabled = false; ok.textContent = "Criar minha senha"; } }, "Criar minha senha");
+  tela(el("div", { class: "sucesso" }, "Checklist salvo."),
+    el("div", {}, el("h1", {}, "Crie sua senha pessoal"), el("p", { class: "sub" }, "Você usou a senha provisória. Agora crie a sua senha de 6 números. Ela é a sua assinatura nos checklists: não passe para ninguém.")),
+    el("div", { class: "bloco" }, el("label", { class: "rot" }, "Nova senha"), a, el("label", { class: "rot" }, "Repita a nova senha"), b),
+    erro, ok, el("button", { class: "btn btn-sec", onclick: () => telaEnviado(p) }, "Agora não"));
+}
+
+function telaEnviado(p, aviso) {
   barra();
   const nc = p.respostas.filter(r => r.situacao === "Não conforme");
-  tela(el("div", { class: "sucesso" }, navigator.onLine || MODO_DEMO ? "Checklist salvo. Enviando agora." : "Checklist salvo no celular. Ele será enviado sozinho quando houver sinal."),
+  tela(aviso ? el("div", { class: "sucesso" }, aviso) : null,
+    el("div", { class: "sucesso" }, navigator.onLine || MODO_DEMO ? "Checklist salvo. Enviando agora." : "Checklist salvo no celular. Ele será enviado sozinho quando houver sinal."),
     el("div", { class: "bloco" }, el("h2", {}, p.checklist),
       el("p", { class: "info", style: "margin:0" }, p.respostas.length + " itens conferidos · ", el("strong", {}, nc.length ? nc.length + " não conforme" + (nc.length > 1 ? "s" : "") : "nenhum não conforme")),
       nc.length ? el("div", { class: "aviso" }, "Não conformes: " + nc.map(r => r.item).join(", ") + ". Se for grave, avise o supervisor por telefone também.") : null),
