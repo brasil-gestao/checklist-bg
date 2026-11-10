@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.7.1";
+const VERSAO_APP = "0.7.2";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -144,7 +144,7 @@ function telaAtivar() {
   const mat = el("input", { type: "text", id: "mat", inputmode: "numeric", maxlength: "6", autocomplete: "off", placeholder: "Sua matrícula (6 números)", oninput: soNum });
   const tel = el("input", { type: "tel", id: "tel", inputmode: "numeric", maxlength: "13", autocomplete: "off", placeholder: "DDD + número", oninput: soNum });
   const erro = el("div", { class: "erro", hidden: true });
-  const msgErro = { expirado: "Este código já venceu (vale 2 dias). Peça um código novo ao supervisor.", matricula: "Matrícula não encontrada ou inativa. Confira com o supervisor.",
+  const msgErro = { expirado: "Este código já venceu (vale 2 dias). Peça um código novo ao supervisor.", matricula: "Matrícula não encontrada ou inativa. Confira com o supervisor.", outra_matricula: "Este código foi liberado para outra matrícula. Confira a sua matrícula ou peça um código novo ao supervisor por e-mail.",
     telefone: "Digite o número deste celular com DDD.", rede: "Sem conexão com o servidor. Tente de novo.", termo: "É preciso ler e aceitar a declaração." };
   const ok = el("button", { class: "btn btn-pri", onclick: async () => {
     const f = [];
