@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.6.0";
+const VERSAO_APP = "0.6.1";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -16,8 +16,11 @@ function tx(store, modo, fn) { return new Promise(res => { if (!db) return res(n
     t.oncomplete = () => res(out && out.result !== undefined ? out.result : null); t.onerror = () => res(null); } catch (e) { res(null); } }); }
 async function filaListar() { if (!db) return mem.fila; return (await tx("fila", "readonly", s => s.getAll())) || []; }
 async function filaSalvar(reg) { if (!db) { const i = mem.fila.findIndex(r => r.id === reg.id); i >= 0 ? mem.fila[i] = reg : mem.fila.push(reg); return; } await tx("fila", "readwrite", s => s.put(reg)); }
-async function cfgLer(k) { if (!db) return mem[k]; return await tx("cfg", "readonly", s => s.get(k)); }
-async function cfgSalvar(k, v) { if (!db) { mem[k] = v; return; } await tx("cfg", "readwrite", s => s.put(v, k)); }
+/* Ativação e lista também ficam numa cópia de reserva (localStorage), para não pedir ativação de novo */
+function lsLer(k) { try { const t = localStorage.getItem("bg_" + k); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
+function lsSalvar(k, v) { try { localStorage.setItem("bg_" + k, JSON.stringify(v)); } catch (e) {} }
+async function cfgLer(k) { let v = db ? await tx("cfg", "readonly", s => s.get(k)) : mem[k]; if (v == null) v = lsLer(k); return v; }
+async function cfgSalvar(k, v) { lsSalvar(k, v); if (!db) { mem[k] = v; return; } await tx("cfg", "readwrite", s => s.put(v, k)); }
 
 /* ===== Utilidades ===== */
 const $ = s => document.querySelector(s);
@@ -376,6 +379,11 @@ async function telaFila() {
 (async function () {
   if ("serviceWorker" in navigator && location.protocol === "https:" && !MODO_DEMO) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
   await abrirDB(); await carregarConfig();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  const instalado = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  if (!MODO_DEMO && (!instalado || !db)) $("#tela").before(el("div", { class: "alerta-nav" }, !db
+    ? "Atenção: este navegador não está guardando os dados (aba anônima ou bloqueio). Os checklists podem se perder. Use o Checklist BG pelo ícone na tela inicial."
+    : "Você está usando o Checklist BG pelo navegador. Para não perder checklists nem a ativação, instale na tela inicial (guia de instalação) e use sempre pelo ícone. Não use aba anônima."));
   if (!CFG) { $("#faixa").textContent = "App " + VERSAO_APP; telaAtivar(); }
   else { textoFaixa(); telaInicio(); }
   await atualizarChip(); enviarFila();
