@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.8.1";
+const VERSAO_APP = "0.9.0";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -288,7 +288,7 @@ async function telaEscolha() {
     })));
 }
 
-function abrirChecklist(c) { S.ck = c; S.inicio = agoraISO(); S.cab = {}; S.resp = {}; S.foto = null; S.fotoEm = null; telaItens(); }
+function abrirChecklist(c) { S.ck = c; S.inicio = agoraISO(); S.cab = {}; S.resp = {}; S.foto = null; S.fotoEm = null; S.status = ""; S.statusMotivo = ""; telaItens(); }
 
 function campoEntrada(id, tipo, ops, valor, aoMudar, rotulo) {
   if (tipo === "lista") return el("select", { id, onchange: e => aoMudar(e.target.value) }, el("option", { value: "" }, "Escolha"), opcoes(ops).map(o => el("option", { value: o, selected: o === valor }, o)));
@@ -381,8 +381,15 @@ function telaFinal() {
   const pin = el("input", { type: "password", id: "pin", inputmode: "numeric", autocomplete: "off", maxlength: "6", placeholder: "Sua senha de 6 números", oninput: e => { e.target.value = e.target.value.replace(/\D/g, ""); revalidar(); } });
   const decl = el("input", { type: "checkbox", id: "decl", onchange: () => revalidar() });
   const erro = el("div", { class: "erro", hidden: true });
+  /* Status final do equipamento: Operacional / Não operacional (Não operacional exige o motivo) */
+  const motivo = el("div", { class: "desc", hidden: S.status !== "NOP" }, el("label", { for: "stm" }, "Por que não está operacional?"),
+    el("textarea", { id: "stm", placeholder: "Ex.: ambulância sem combustível; cilindro de O2 vazio", oninput: e => { S.statusMotivo = e.target.value; revalidar(); } }, S.statusMotivo || ""));
+  const bts = [["OP", "ok", "Operacional"], ["NOP", "nc", "Não operacional"]].map(([v, cl, t]) => el("button", { class: cl, type: "button", "data-v": v, "aria-pressed": String(S.status === v),
+    onclick: () => { S.status = v; bts.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v))); motivo.hidden = v !== "NOP"; if (v === "NOP") motivo.querySelector("textarea").focus(); revalidar(); } }, t));
   function faltas() { const f = [];
     if (!S.foto) f.push("Falta a foto do equipamento.");
+    if (!S.status) f.push("Marque o status do equipamento: Operacional ou Não operacional.");
+    else if (S.status === "NOP" && (S.statusMotivo || "").trim().length < 3) f.push("Escreva por que o equipamento não está operacional.");
     if (pin.value.length !== 6) f.push("Digite a sua senha de 6 números.");
     if (!decl.checked) f.push("Marque a declaração de que você inspecionou pessoalmente.");
     return f; }
@@ -405,6 +412,7 @@ function telaFinal() {
       tem_nao_conforme: itens.some(i => S.resp[i.id].sit === "N") || itens.some(i => i.tipo === "lista" && opcoes(i.texto_se).includes(S.resp[i.id].valor)),
       respostas: itens.map(i => { const r = S.resp[i.id];
         return { item_id: i.id, item: i.nome, bloco: i.bloco, tipo: i.tipo, quantidade: r.qtd ?? "", situacao: r.sit ? SIT[r.sit] : (r.valor || ""), descricao: (r.desc || "").trim(), foto: r.foto || "", foto_em: r.fotoEm || "" }; }),
+      status_final: S.status === "NOP" ? "NÃO OPERACIONAL" : "OPERACIONAL", status_motivo: S.status === "NOP" ? (S.statusMotivo || "").trim() : "",
       foto_final: { tirada_em: S.fotoEm, origem: "camera_do_app", imagem: S.foto } };
     await filaSalvar({ id: payload.id, criado_em: fim, situacao: "aguardando", checklist_id: c.id, matricula: S.matricula, nome: S.nome, turno: S.turno, plantao: payload.plantao, resumo: c.nome + " · " + S.nome, payload });
     await atualizarChip(); enviarFila();
@@ -415,6 +423,9 @@ function telaFinal() {
     el("div", { class: "bloco" }, el("h2", {}, "Foto do equipamento completo"),
       el("p", { class: "info", style: "margin:0" }, "Bata a foto agora, aqui no app. Não dá para usar foto da galeria."),
       el("div", { class: "foto-caixa" }, camera(S.foto, (d, em) => { S.foto = d; S.fotoEm = em; revalidar(); }))),
+    el("div", { class: "bloco" }, el("h2", {}, "Status do equipamento"),
+      el("p", { class: "info", style: "margin:0" }, "Depois de conferir tudo: o equipamento está pronto para uso?"),
+      el("div", { class: "sit" }, bts), motivo),
     el("div", { class: "bloco" }, el("label", { class: "rot", for: "pin" }, "Senha pessoal"), pin,
       el("label", { class: "decl", for: "decl" }, decl, el("span", {}, "Declaro que inspecionei pessoalmente estes equipamentos."))),
     erro, el("button", { class: "btn btn-pri", onclick: concluir }, "Salvar e enviar"));
