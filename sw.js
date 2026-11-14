@@ -1,6 +1,6 @@
 // Service worker do Checklist BG: guarda as telas no celular para abrir sem internet.
 // Regra: atualizar o programa NUNCA apaga a fila de envio (ela fica no IndexedDB, fora deste cache).
-const VERSAO = "checklist-bg-0.9.1";
+const VERSAO = "checklist-bg-0.9.2";
 const ARQUIVOS = ["./", "index.html", "app.js", "manifest.json", "logo.png", "icone-192.png", "icone-512.png"];
 
 self.addEventListener("install", e => {
@@ -19,7 +19,7 @@ self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return; // envios e planilha: direto na rede
   e.respondWith(
-    fetch(e.request).then(r => { const copia = r.clone(); caches.open(VERSAO).then(c => c.put(e.request, copia)); return r; })
-      .catch(() => caches.match(e.request).then(r => r || caches.match("index.html")))
+    fetch(e.request, { cache: "no-cache" }).then(r => { const copia = r.clone(); caches.open(VERSAO).then(c => c.put(e.request, copia)); return r; })
+      .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match("index.html")))
   );
 });
