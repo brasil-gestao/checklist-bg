@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.9.2";
+const VERSAO_APP = "0.9.3";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -145,7 +145,8 @@ function telaAtivar() {
       [el("strong", {}, "Feche o navegador"), " e abra o Checklist BG pelo ícone novo na tela de início."],
       ["No aplicativo, digite o código de ativação."]];
     let passos;
-    if (nav === "chrome") passos = lista(["Toque no botão ", el("strong", {}, "Compartilhar"), " ", iconeCompartilhar(), ", no ", el("strong", {}, "alto da tela, à direita do endereço"), " (brasil-gestao.github.io)."], ...fim);
+    if (nav === "chrome") passos = lista(["Toque no botão ", el("strong", {}, "Compartilhar"), " ", iconeCompartilhar(), ", no ", el("strong", {}, "alto da tela, à direita do endereço"), " (brasil-gestao.github.io)."],
+      ["Na janela que abrir, ", el("strong", {}, "arraste a lista para cima"), " com o dedo até aparecer ", el("strong", {}, "Adicionar à Tela de Início"), " (fica lá embaixo)."], ...fim);
     else if (nav === "safari") passos = lista(["Toque no botão ", el("strong", {}, "Compartilhar"), " ", iconeCompartilhar(), ", na barra do Safari (embaixo ou no alto da tela)."], ...fim);
     else {
       const copiar = el("button", { class: "btn btn-pri", onclick: async () => {
