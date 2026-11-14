@@ -1,7 +1,7 @@
 /* Checklist BG — aplicativo de checklist da Brasil Gestão
    A estrutura (contratos, turnos, nomes, checklists, campos e itens) vem da planilha-mestre,
    entregue pelo receptor do Google (ENDPOINT). Sem ENDPOINT e com config_demo.js, roda em demonstração. */
-const VERSAO_APP = "0.9.0";
+const VERSAO_APP = "0.9.1";
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbxqprpvQazbTNF9wAdGRIJA-wSmx_kWhV6sgCiiZ21D2Gn7yy2Wl4Cgpq3XWRiWHohu7w/exec"; // endereço do receptor (Google Apps Script) — preenchido na ligação
 const MODO_DEMO = !!window.CONFIG_DEMO;
 
@@ -128,16 +128,33 @@ function tela(...filhos) { pararCamera(); $("#tela").replaceChildren(...filhos.f
 /* No iPhone, o Safari e o app instalado guardam dados separados: só deixa ativar pelo ícone */
 const ehIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const estaInstalado = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+/* Desenho do botão Compartilhar do iPhone (quadrado com seta para cima) */
+function iconeCompartilhar() {
+  const s = document.createElement("span");
+  s.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-label="botão Compartilhar" style="vertical-align:-5px;margin:0 2px"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="#1F6FEB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 17.5 10H16" fill="none" stroke="#1F6FEB" stroke-width="2" stroke-linecap="round"/></svg>';
+  return s;
+}
+/* Qual navegador do iPhone: o Safari e o Chrome instalam pelo Compartilhar (em lugares diferentes); os outros, abrir no Safari */
+function navegadorIOS() { const u = navigator.userAgent; return /CriOS/.test(u) ? "chrome" : /FxiOS|EdgiOS|OPiOS|GSA\/|Instagram|FBAN|FBAV|WhatsApp/.test(u) ? "outro" : "safari"; }
 function telaAtivar() {
   barra();
   if (!MODO_DEMO && ehIOS() && !estaInstalado()) {
+    const nav = navegadorIOS();
+    const lista = (...itens) => el("div", { class: "bloco" }, el("ol", { style: "margin:0;padding-left:20px;display:grid;gap:10px" }, itens.map(i => el("li", {}, ...i))));
+    const fim = [[el("strong", {}, "Escolha Adicionar à Tela de Início"), " (se não aparecer, role a lista para baixo) e toque em ", el("strong", {}, "Adicionar"), "."],
+      [el("strong", {}, "Feche o navegador"), " e abra o Checklist BG pelo ícone novo na tela de início."],
+      ["No aplicativo, digite o código de ativação."]];
+    let passos;
+    if (nav === "chrome") passos = lista(["Toque no botão ", el("strong", {}, "Compartilhar"), " ", iconeCompartilhar(), ", no ", el("strong", {}, "alto da tela, à direita do endereço"), " (brasil-gestao.github.io)."], ...fim);
+    else if (nav === "safari") passos = lista(["Toque no botão ", el("strong", {}, "Compartilhar"), " ", iconeCompartilhar(), ", na barra do Safari (embaixo ou no alto da tela)."], ...fim);
+    else {
+      const copiar = el("button", { class: "btn btn-pri", onclick: async () => {
+        try { await navigator.clipboard.writeText(location.href.split("#")[0]); copiar.textContent = "Link copiado! Agora abra o Safari e cole"; } catch (e) { copiar.textContent = "Copie o endereço lá em cima e cole no Safari"; } } }, "Copiar o link");
+      passos = el("div", {}, el("div", { class: "bloco" }, el("p", { style: "margin:0" }, "Este navegador não instala o aplicativo. Abra este mesmo link no ", el("strong", {}, "Safari"), " ou no ", el("strong", {}, "Chrome"), " e siga as instruções que vão aparecer.")), copiar);
+    }
     return tela(el("div", {}, el("h1", {}, "Instale antes de ativar"),
-        el("p", { class: "sub" }, "No iPhone, o Checklist BG só pode ser ativado pelo ícone na tela inicial. O que for feito aqui no Safari não aparece no aplicativo.")),
-      el("div", { class: "bloco" }, el("ol", { style: "margin:0;padding-left:20px;display:grid;gap:8px" },
-        el("li", {}, "Toque em ", el("strong", {}, "Compartilhar"), " (quadrado com seta para cima), na barra do Safari."),
-        el("li", {}, "Escolha ", el("strong", {}, "Adicionar à Tela de Início"), " e toque em ", el("strong", {}, "Adicionar"), "."),
-        el("li", {}, el("strong", {}, "Feche o Safari"), " e abra o Checklist BG pelo ícone."),
-        el("li", {}, "No aplicativo, digite o código de ativação."))));
+        el("p", { class: "sub" }, "No iPhone, o Checklist BG só pode ser ativado pelo ícone na tela de início. O que for feito aqui no navegador não aparece no aplicativo.")),
+      passos);
   }
   const soNum = e => { e.target.value = e.target.value.replace(/\D/g, ""); };
   const cod = el("input", { type: "text", id: "codigo", autocomplete: "off", placeholder: "Código de ativação" });
